@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	grpcmw "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/ry0suke17/grpc-metadata-example/proto/gen"
@@ -13,6 +14,8 @@ import (
 	"os"
 	"os/signal"
 )
+
+var errSomething = errors.New("err something")
 
 func main() {
 	port := 8081
@@ -27,9 +30,10 @@ func main() {
 		grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 			var trailer metadata.MD
 			err := invoker(ctx, method, req, reply, cc, append(opts, grpc.Trailer(&trailer))...)
-			// want to propagate the trailer to ctx, but it doesn't seem possible.
-			// grpc.SetTrailer(ctx, trailer)
 			log.Printf("trailer: %+v", trailer)
+			if t := trailer.Get("test-key"); len(t) != 0 {
+				return errSomething
+			}
 			return err
 		}),
 	)
@@ -42,8 +46,9 @@ func main() {
 	s := grpc.NewServer(grpc.UnaryInterceptor(grpcmw.ChainUnaryServer(
 		func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 			resp, err := handler(ctx, req)
-			md, ok := metadata.FromIncomingContext(ctx)
-			log.Printf("md: %+v, ok: %v", md, ok)
+			if errors.Is(err, errSomething) {
+				log.Printf("err: %v", err)
+			}
 			return resp, err
 		},
 	)))
