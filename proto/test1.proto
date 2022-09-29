@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = ".;gen";
+
+message Test1Request {}
+
+message Test1Response {
+  string text = 1;
+}
+
+service Test1 {
+  rpc Test1(Test1Request) returns (Test1Response) {}
+}

@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: server
+          image: k8s-metadata-example-test1:latest
+          ports:
+            - containerPort: 8080
